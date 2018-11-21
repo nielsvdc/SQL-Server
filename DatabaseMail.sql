@@ -5,7 +5,7 @@
 --
 -- Enable and configure Database Mail for SQL Server instance
 -------------------------------------------
-
+USE master;
 EXECUTE sp_configure 'show advanced', 1;
 RECONFIGURE;
 EXECUTE sp_configure 'Database Mail XPs',1;
@@ -30,15 +30,23 @@ DECLARE
     @version AS varchar(2),
     @regPath AS varchar(200);
 
-SELECT @serverName = SUBSTRING(@@SERVERNAME, 1, CHARINDEX('\', @@SERVERNAME, 1)-1)
-SELECT @displayName = REPLACE(@@SERVERNAME, '\', '-')
-SELECT @instantName = SUBSTRING(@@SERVERNAME, CHARINDEX('\', @@SERVERNAME, 1)+1, 50);
+IF CHARINDEX('\', @@SERVERNAME, 1) > 0
+BEGIN
+	-- When there's a database instance
+	SELECT @serverName = SUBSTRING(@@SERVERNAME, 1, CHARINDEX('\', @@SERVERNAME, 1)-1)
+	SELECT @displayName = REPLACE(@@SERVERNAME, '\', '-')
+	SELECT @instantName = SUBSTRING(@@SERVERNAME, CHARINDEX('\', @@SERVERNAME, 1)+1, 50);
+END
+ELSE
+BEGIN
+	SELECT @serverName = @@SERVERNAME
+	SELECT @displayName = @@SERVERNAME
+	SELECT @instantName = ''
+END
 SELECT @serverEmail = @displayName+@localDomain
-
 -- Get SQL Server product version
 SELECT @pver = CAST(SERVERPROPERTY('productversion') AS varchar(10));
 SELECT @version = SUBSTRING(@pver, 1, CHARINDEX('.', @pver, 1)-1);
-
 -- Delete existing profile and account
 IF EXISTS (SELECT * FROM msdb.dbo.sysmail_profile WHERE name = @serverName)
 BEGIN
@@ -48,7 +56,6 @@ IF EXISTS (SELECT * FROM msdb.dbo.sysmail_account WHERE name = @serverName)
 BEGIN
     EXEC msdb.dbo.sysmail_delete_account_sp @account_name = @serverName
 END
-
 -- Create a Database Mail account
 EXECUTE msdb.dbo.sysmail_add_account_sp
     @account_name = @serverName,
@@ -74,13 +81,11 @@ EXECUTE msdb.dbo.sysmail_add_principalprofile_sp
     @profile_name = @serverName,
     @principal_name = 'public',
     @is_default = 1;
-
 -- Delete and create VDR IT Error operator
 IF EXISTS (SELECT * FROM MSDB.dbo.sysoperators WHERE name = @operatorName) 
 BEGIN
     EXEC msdb.dbo.sp_delete_operator @name=@operatorName
 END
-
 EXEC msdb.dbo.sp_add_operator @name=@operatorName, 
     @enabled=1, 
     @weekday_pager_start_time=90000, 
@@ -92,12 +97,9 @@ EXEC msdb.dbo.sp_add_operator @name=@operatorName,
     @pager_days=0, 
     @email_address=@operatorMail, 
     @category_name=N'[Uncategorized]'
-
 EXECUTE sp_configure 'show advanced', 0;
 RECONFIGURE;
-
 SELECT 'Don''t forget to enable mail in SQL Server Agent > Alert System > Enable mail profile'
-
 --send a test email
 EXECUTE msdb.dbo.sp_send_dbmail
     @subject = 'Test Database Mail Message',
