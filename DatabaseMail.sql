@@ -43,7 +43,7 @@ BEGIN
 	SELECT @displayName = @@SERVERNAME
 	SELECT @instantName = ''
 END
-SELECT @serverEmail = @displayName+@localDomain
+SELECT @serverEmail = @displayName+'@'+@localDomain
 -- Get SQL Server product version
 SELECT @pver = CAST(SERVERPROPERTY('productversion') AS varchar(10));
 SELECT @version = SUBSTRING(@pver, 1, CHARINDEX('.', @pver, 1)-1);
