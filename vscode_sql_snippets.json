@@ -28,10 +28,10 @@
     ]
   },
   "sqlColumnstoreIndexFragmentation": {
-    "prefix": "sqlColumnstoreIndexFragmentation",
-    "description": "Get columnstore indexes & fragmentation",
+    "prefix": "sqlColumnstoreIndexStatistics",
+    "description": "Get columnstore statistics",
     "body": [
-      "-- Get columnstore indexes and fragmentation",
+      "-- Get columnstore indexes statistics",
       "SELECT",
       "    s.name",
       "    ,t.name AS TableName",
